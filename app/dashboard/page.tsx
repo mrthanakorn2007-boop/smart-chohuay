@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Download, Trash2, Edit2, Check, X, FileText } from "lucide-react";
+// 1. เพิ่ม BarChart3 เข้ามาใน lucide-react (ใช้แทน BarChart เดิมที่ชื่อซ้ำ)
+import { ArrowLeft, Download, Trash2, Edit2, Check, X, FileText, BarChart3 } from "lucide-react";
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
@@ -48,10 +49,8 @@ export default function Dashboard() {
        if (loading) return <div className="h-[100dvh] flex items-center justify-center text-gray-400">Loading...</div>;
 
        return (
-              // ✅ ใช้ Layout แบบ Flex Column เต็มจอ (h-[100dvh]) เหมือนหน้าอื่น
               <div className="flex flex-col h-[100dvh] bg-gray-50 overflow-hidden">
 
-                     {/* 🟢 ส่วนหัว (Header) - Fix นิ่งๆ */}
                      <div className="flex-none bg-white p-4 shadow-sm z-10 pt-safe flex items-center justify-between">
                             <Link href="/" className="text-gray-500 font-bold flex items-center gap-1 hover:text-blue-600 transition">
                                    <ArrowLeft size={20} /> หน้าร้าน
@@ -61,11 +60,9 @@ export default function Dashboard() {
                             </button>
                      </div>
 
-                     {/* 🟢 ส่วนเนื้อหา (Content) - เลื่อนได้อิสระ */}
                      <div className="flex-1 overflow-y-auto p-4 pb-safe">
                             <div className="max-w-3xl mx-auto pb-10">
 
-                                   {/* Cards */}
                                    <div className="grid grid-cols-3 gap-3 mb-6">
                                           <div className="bg-white p-3 rounded-2xl shadow-sm border border-blue-100">
                                                  <div className="text-gray-400 text-[10px] font-bold mb-1 uppercase">เงินเข้าวันนี้</div>
@@ -81,9 +78,9 @@ export default function Dashboard() {
                                           </div>
                                    </div>
 
-                                   {/* Graph */}
                                    <div className="bg-white p-4 rounded-2xl shadow-sm mb-6 h-64 border border-gray-100">
-                                          <h4 className="text-xs font-bold text-gray-400 mb-2 flex items-center gap-2"><BarChart size={14} /> กราฟรายได้จริง (ไม่รวมหนี้)</h4>
+                                          {/* 2. เปลี่ยนตรงนี้จาก BarChart เป็น BarChart3 เพื่อไม่ให้ชนกับกราฟ */}
+                                          <h4 className="text-xs font-bold text-gray-400 mb-2 flex items-center gap-2"><BarChart3 size={14} /> กราฟรายได้จริง (ไม่รวมหนี้)</h4>
                                           <ResponsiveContainer width="100%" height="100%">
                                                  <BarChart data={hourlyData.filter(h => h.total > 0).length > 0 ? hourlyData : []}>
                                                         <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} />
@@ -94,7 +91,6 @@ export default function Dashboard() {
                                           {hourlyData.filter(h => h.total > 0).length === 0 && <div className="text-center text-xs text-gray-300 mt-[-100px]">ยังไม่มีข้อมูลวันนี้</div>}
                                    </div>
 
-                                   {/* List */}
                                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                                           <div className="p-4 border-b bg-gray-50/50 flex items-center gap-2">
                                                  <FileText size={18} className="text-gray-400" />
