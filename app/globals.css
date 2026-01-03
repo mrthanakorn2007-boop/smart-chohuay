@@ -10,21 +10,24 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: linear-gradient(to bottom, transparent, rgb(var(--background-end-rgb))) rgb(var(--background-start-rgb));
   font-family: Arial, Helvetica, sans-serif;
-  overflow: hidden;
+  overflow: hidden; /* ป้องกันการเลื่อนทั้งหน้า */
 }
 
 /* ซ่อน Scrollbar */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none; 
-  scrollbar-width: none; 
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ✅ เพิ่ม Utility Class สำหรับ iPhone ติ่ง/ขีดล่าง */
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .h-dvh {
+    height: 100dvh; /* ความสูงเต็มจอแบบ Dynamic (แก้ปัญหา Address bar บังใน Android/iOS) */
+  }
 }

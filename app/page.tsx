@@ -6,7 +6,7 @@ import { ShoppingCart, Trash2, X, Loader2, Image as ImageIcon, Settings, Camera,
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getPOSData, submitOrder } from "./actions";
-import { supabase } from "./lib/supabase";
+import { supabase } from "@/lib/supabase";
 import generatePayload from "promptpay-qr";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -26,12 +26,12 @@ export default function POS() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  // Payment Mode
+  // Payment
   const [paymentMode, setPaymentMode] = useState<'SELECT' | 'QR' | 'CREDIT'>('SELECT');
   const [slipFile, setSlipFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Debtor Form (ฟอร์มลูกหนี้)
+  // Debtor
   const [debtorName, setDebtorName] = useState("");
   const [debtorContact, setDebtorContact] = useState("");
 
@@ -55,16 +55,10 @@ export default function POS() {
 
   const handleCheckout = async (method: 'CASH' | 'QR' | 'CREDIT') => {
     if (cart.length === 0) return;
-
-    // ถ้าเลือกติดหนี้ ต้องกรอกชื่อก่อน
-    if (method === 'CREDIT' && !debtorName.trim()) {
-      alert("กรุณาใส่ชื่อคนติดหนี้ด้วยครับ!");
-      return;
-    }
+    if (method === 'CREDIT' && !debtorName.trim()) { alert("ใส่ชื่อลูกหนี้ด้วยครับ"); return; }
 
     setProcessing(true);
     let slipUrl = "";
-
     if (slipFile) {
       const fileName = `slip-${Date.now()}.jpg`;
       const { data } = await supabase.storage.from('slips').upload(fileName, slipFile);
@@ -73,23 +67,14 @@ export default function POS() {
         slipUrl = pUrl.publicUrl;
       }
     }
-
     const debtorInfo = method === 'CREDIT' ? { name: debtorName, contact: debtorContact } : null;
-
     const res = await submitOrder(cart, total, method, slipUrl, debtorInfo);
 
     if (res.success) {
-      setCart([]);
-      setIsCartOpen(false);
-      setPaymentMode('SELECT');
-      setSlipFile(null);
-      setDebtorName("");
-      setDebtorContact("");
+      setCart([]); setIsCartOpen(false); setPaymentMode('SELECT'); setSlipFile(null); setDebtorName(""); setDebtorContact("");
       loadData();
-      alert(method === 'CREDIT' ? "📝 บันทึกหนี้เรียบร้อย" : "✅ บันทึกยอดขายเรียบร้อย");
-    } else {
-      alert("❌ Error: " + res.message);
-    }
+      alert(method === 'CREDIT' ? "บันทึกหนี้แล้ว" : "ขายเรียบร้อย");
+    } else { alert("Error: " + res.message); }
     setProcessing(false);
   };
 
@@ -112,10 +97,11 @@ export default function POS() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100 max-w-md mx-auto relative overflow-hidden shadow-2xl border-x border-gray-200">
+    // ✅ แก้ไข: ใช้ h-dvh แทน h-screen เพื่อรองรับ Mobile Browser ทุกรุ่น
+    <div className="h-dvh flex flex-col bg-gray-100 max-w-md mx-auto relative overflow-hidden shadow-2xl border-x border-gray-200">
 
       {/* Header */}
-      <div className="bg-white p-3 flex justify-between items-center border-b px-4 z-20">
+      <div className="bg-white p-3 flex justify-between items-center border-b px-4 z-20 pt-safe">
         <h1 className="font-bold text-gray-800 text-lg">🛒 ร้านแม่</h1>
         <button onClick={() => { setPin(""); setShowAdminLogin(true); }} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><Settings size={20} className="text-gray-600" /></button>
       </div>
@@ -162,7 +148,8 @@ export default function POS() {
         {cart.length > 0 && (
           <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="absolute bottom-0 w-full bg-white rounded-t-3xl shadow-[0_-5px_20px_rgba(0,0,0,0.1)] z-50">
             {!isCartOpen ? (
-              <div onClick={() => setIsCartOpen(true)} className="p-4 flex justify-between items-center bg-white rounded-t-3xl border-t cursor-pointer active:bg-gray-50">
+              // ✅ แก้ไข: เพิ่ม padding-bottom แบบ Safe Area + extra space
+              <div onClick={() => setIsCartOpen(true)} className="p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex justify-between items-center bg-white rounded-t-3xl border-t cursor-pointer active:bg-gray-50">
                 <div className="flex items-center gap-3"><div className="bg-red-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg text-sm">{cart.length}</div><span className="text-gray-500 font-medium">รวมเงิน</span></div>
                 <span className="text-3xl font-extrabold text-blue-600">{total}.-</span>
               </div>
@@ -182,8 +169,8 @@ export default function POS() {
                   ))}
                 </div>
 
-                <div className="p-4 bg-white border-t safe-area-bottom shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
-                  {/* 1. เลือกวิธีจ่าย */}
+                {/* ✅ แก้ไข: เพิ่ม Safe Area ด้านล่างสุดของปุ่มกด */}
+                <div className="p-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] bg-white border-t safe-area-bottom shadow-[0_-5px_15px_rgba(0,0,0,0.05)]">
                   {paymentMode === 'SELECT' && (
                     <div className="space-y-3">
                       <div className="flex justify-between items-end px-2 mb-2"><span className="text-gray-500 font-medium">ยอดสุทธิ</span><span className="text-4xl font-extrabold text-blue-600">{total}.-</span></div>
@@ -195,7 +182,6 @@ export default function POS() {
                     </div>
                   )}
 
-                  {/* 2. QR Mode */}
                   {paymentMode === 'QR' && (
                     <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4">
                       <div className="bg-white p-4 border rounded-2xl mb-4 shadow-sm"><QRCodeSVG value={ppPayload} size={150} /></div>
@@ -208,7 +194,6 @@ export default function POS() {
                     </div>
                   )}
 
-                  {/* 3. Credit Mode (ติดหนี้) */}
                   {paymentMode === 'CREDIT' && (
                     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-3">
                       <h3 className="font-bold text-orange-600 flex items-center gap-2 text-lg"><FileText /> ลงบัญชีติดหนี้</h3>
