@@ -184,35 +184,52 @@ function AdminContent() {
                                           </>
                                    )}
 
-                                   {/* ✅ แท็บจัดการหมวดหมู่ (แบบเรียงลำดับได้) */}
                                    {activeTab === 'category' && (
                                           <div className="glass-card bg-white p-6 rounded-3xl">
                                                  <h3 className="font-bold mb-4 text-gray-700">จัดการหมวดหมู่สินค้า</h3>
-                                                 <div className="flex gap-2 mb-6">
-                                                        <div className="flex-1 flex gap-2">
-                                                               <input placeholder="ชื่อหมวดหมู่" value={newCatName} onChange={e => setNewCatName(e.target.value)} className="flex-[2] p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
-                                                               <input type="number" placeholder="ลำดับ" value={newCatOrder} onChange={e => setNewCatOrder(e.target.value)} className="flex-1 p-3 border rounded-xl outline-none text-center" />
+
+                                                 {/* ✅ แก้ไข Layout ตรงนี้: ใช้ flex-col บนมือถือ และ flex-row บนจอใหญ่ */}
+                                                 <div className="flex flex-col sm:flex-row gap-2 mb-6">
+                                                        <input
+                                                               placeholder="ชื่อหมวดหมู่ใหม่"
+                                                               value={newCatName}
+                                                               onChange={e => setNewCatName(e.target.value)}
+                                                               className="flex-1 p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500 min-w-0" // min-w-0 ช่วยกันล้น
+                                                        />
+                                                        <div className="flex gap-2">
+                                                               <input
+                                                                      type="number"
+                                                                      placeholder="ลำดับ"
+                                                                      value={newCatOrder}
+                                                                      onChange={e => setNewCatOrder(e.target.value)}
+                                                                      className="w-24 p-3 border rounded-xl outline-none text-center focus:ring-2 focus:ring-blue-500" // ฟิกขนาด w-24 ไม่ให้ล้น
+                                                               />
+                                                               <button
+                                                                      onClick={handleCreateCategory}
+                                                                      className="bg-blue-600 text-white px-6 rounded-xl font-bold active:scale-95 transition whitespace-nowrap"
+                                                               >
+                                                                      เพิ่ม
+                                                               </button>
                                                         </div>
-                                                        <button onClick={handleCreateCategory} className="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition">เพิ่ม</button>
                                                  </div>
 
                                                  <div className="space-y-2">
                                                         {categories.map(c => (
                                                                <div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border">
-                                                                      <div className="flex items-center gap-3">
-                                                                             <div className="bg-gray-200 text-gray-500 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs">
+                                                                      <div className="flex items-center gap-3 overflow-hidden">
+                                                                             <div className="bg-gray-200 text-gray-500 w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center font-bold text-xs">
                                                                                     {c.sort_order}
                                                                              </div>
-                                                                             <span className="font-bold text-gray-700">{c.name}</span>
+                                                                             <span className="font-bold text-gray-700 truncate">{c.name}</span>
                                                                       </div>
-                                                                      <div className="flex items-center gap-2">
+                                                                      <div className="flex items-center gap-2 flex-shrink-0">
                                                                              <input
                                                                                     type="number"
                                                                                     className="w-12 p-1 text-center border rounded bg-white text-xs"
                                                                                     defaultValue={c.sort_order}
                                                                                     onBlur={(e) => {
                                                                                            handleUpdateCatOrder(c.id, e.target.value);
-                                                                                           fetchData(); // อัปเดตหน้าจอเมื่อแก้เสร็จ
+                                                                                           fetchData();
                                                                                     }}
                                                                              />
                                                                              <button onClick={() => handleDeleteCategory(c.id)} className="text-red-400 p-2 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
@@ -220,7 +237,7 @@ function AdminContent() {
                                                                </div>
                                                         ))}
                                                  </div>
-                                                 <p className="text-xs text-gray-400 mt-4 text-center">* แก้ไขตัวเลขลำดับ แล้วกดที่อื่นเพื่อบันทึก (เลขน้อยขึ้นก่อน)</p>
+                                                 <p className="text-xs text-gray-400 mt-4 text-center">* ใส่เลขน้อยให้ขึ้นก่อน (เช่น 1, 2, 3)</p>
                                           </div>
                                    )}
 

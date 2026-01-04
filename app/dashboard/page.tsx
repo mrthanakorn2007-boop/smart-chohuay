@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Download, Trash2, Check, X, FileText, Home, RefreshCw, Edit2, TrendingUp } from "lucide-react";
+// ✅ เพิ่ม ImageIcon เข้ามา
+import { Download, Trash2, Check, X, FileText, Home, RefreshCw, Edit2, TrendingUp, Image as ImageIcon } from "lucide-react";
 import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
 import { deleteOrder, updateOrderItemName } from "../actions";
@@ -12,6 +13,9 @@ export default function Dashboard() {
        const [loading, setLoading] = useState(true);
        const [editingItemId, setEditingItemId] = useState<number | null>(null);
        const [editName, setEditName] = useState("");
+
+       // ✅ State สำหรับดูรูปสลิป
+       const [viewSlipUrl, setViewSlipUrl] = useState<string | null>(null);
 
        useEffect(() => { loadOrders(); }, []);
 
@@ -37,20 +41,14 @@ export default function Dashboard() {
 
        // --- Logic คำนวณยอดและกำไร ---
        const todayDateStr = new Date().toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' });
-
-       // กรองเฉพาะบิลวันนี้
        const todayOrders = orders.filter(o => getThaiDate(o.created_at) === todayDateStr);
 
        const realSales = todayOrders.filter(o => o.status === 'PAID').reduce((sum, o) => sum + o.total_amount, 0);
        const debtPending = todayOrders.filter(o => o.status === 'UNPAID').reduce((sum, o) => sum + o.total_amount, 0);
        const totalCount = todayOrders.length;
-
-       // 💰 คำนวณกำไร: (ราคาขาย - ต้นทุน) * จำนวน
-       // หมายเหตุ: เฉพาะบิลที่จ่ายเงินแล้ว (PAID) หรือจะรวมหนี้ด้วยก็ได้ (ในที่นี้รวมหมดเพราะของออกไปแล้ว)
        const totalProfit = todayOrders.reduce((accProfit, order) => {
-              // วนลูปสินค้าในแต่ละบิล
               const orderProfit = order.order_items.reduce((p: number, item: any) => {
-                     const cost = item.cost || 0; // ถ้าไม่มีต้นทุน ให้เป็น 0
+                     const cost = item.cost || 0;
                      const profitPerItem = (item.price - cost) * item.quantity;
                      return p + profitPerItem;
               }, 0);
@@ -69,7 +67,8 @@ export default function Dashboard() {
                      Status: o.status === 'PAID' ? 'จ่ายแล้ว' : 'ติดหนี้',
                      Customer: o.customer_name || '-',
                      Total: o.total_amount,
-                     Profit: o.order_items.reduce((p: number, i: any) => p + ((i.price - (i.cost || 0)) * i.quantity), 0), // เพิ่มกำไรใน Excel
+                     Profit: o.order_items.reduce((p: number, i: any) => p + ((i.price - (i.cost || 0)) * i.quantity), 0),
+                     Slip: o.slip_url ? 'มีรูป' : '-', // ระบุใน Excel ด้วยว่ามีรูปไหม
                      Items: o.order_items ? o.order_items.map((i: any) => `${i.product_name} x${i.quantity}`).join(', ') : ''
               }));
               const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Sales"); XLSX.writeFile(wb, "Sales.xlsx");
@@ -93,7 +92,6 @@ export default function Dashboard() {
                                                  <div className="text-gray-400 text-[10px] font-bold mb-1 uppercase">เงินเข้าวันนี้</div>
                                                  <div className="text-xl sm:text-2xl font-extrabold text-blue-600 truncate">{realSales.toLocaleString()}</div>
                                           </div>
-                                          {/* 💰 กล่องกำไรวันนี้ (เพิ่มใหม่) */}
                                           <div className="bg-white p-3 rounded-2xl shadow-sm border-b-4 border-green-500 relative overflow-hidden">
                                                  <div className="absolute top-0 right-0 p-1 opacity-10"><TrendingUp size={40} /></div>
                                                  <div className="text-gray-400 text-[10px] font-bold mb-1 uppercase text-green-600">กำไรวันนี้</div>
@@ -117,8 +115,6 @@ export default function Dashboard() {
                                    <div className="space-y-3">
                                           {orders.map((order) => {
                                                  const isToday = getThaiDate(order.created_at) === todayDateStr;
-                                                 // คำนวณกำไรต่อบิล (Optional: แสดงให้ดูด้วยก็ได้)
-                                                 // const profit = order.order_items.reduce((p:number, i:any) => p + ((i.price - (i.cost||0))*i.quantity), 0);
                                                  return (
                                                         <div key={order.id} className={`p-4 rounded-2xl shadow-sm border transition-all ${isToday ? 'bg-white border-blue-100' : 'bg-gray-100 border-gray-200 opacity-70 grayscale-[0.5]'}`}>
                                                                <div className="flex justify-between items-start mb-2">
@@ -127,7 +123,19 @@ export default function Dashboard() {
                                                                              {order.status === 'UNPAID' ? <span className="text-[10px] px-2 py-0.5 rounded-md font-bold text-white bg-orange-500">ติดหนี้ ({order.customer_name})</span> : <span className="text-[10px] px-2 py-0.5 rounded-md font-bold text-white bg-green-500">จ่ายแล้ว ({order.payment_method})</span>}
                                                                              {!isToday && <span className="text-[10px] px-2 py-0.5 rounded-md bg-gray-300 text-gray-600">ย้อนหลัง</span>}
                                                                       </div>
-                                                                      <div className="flex items-center gap-3">
+
+                                                                      <div className="flex items-center gap-2">
+                                                                             {/* ✅ ปุ่มดูสลิป (แสดงเฉพาะถ้ามี slip_url) */}
+                                                                             {order.slip_url && (
+                                                                                    <button
+                                                                                           onClick={() => setViewSlipUrl(order.slip_url)}
+                                                                                           className="bg-blue-50 text-blue-600 p-1.5 rounded-lg hover:bg-blue-100 transition"
+                                                                                           title="ดูสลิป/หลักฐาน"
+                                                                                    >
+                                                                                           <ImageIcon size={16} />
+                                                                                    </button>
+                                                                             )}
+
                                                                              <div className="text-right">
                                                                                     <div className={`font-bold text-lg ${order.status === 'UNPAID' ? 'text-orange-500' : 'text-blue-600'}`}>{order.total_amount}.-</div>
                                                                              </div>
@@ -154,6 +162,18 @@ export default function Dashboard() {
                                    </div>
                             </div>
                      </div>
+
+                     {/* ✅ Modal แสดงรูปสลิป */}
+                     {viewSlipUrl && (
+                            <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in" onClick={() => setViewSlipUrl(null)}>
+                                   <div className="relative max-w-sm w-full max-h-[90vh]">
+                                          <button onClick={() => setViewSlipUrl(null)} className="absolute -top-10 right-0 text-white p-2 hover:bg-white/20 rounded-full"><X size={24} /></button>
+                                          <img src={viewSlipUrl} alt="Slip" className="w-full h-auto rounded-xl shadow-2xl object-contain bg-white" />
+                                          <p className="text-center text-white/70 text-xs mt-2">แตะที่ว่างเพื่อปิด</p>
+                                   </div>
+                            </div>
+                     )}
+
               </div>
        );
 }
