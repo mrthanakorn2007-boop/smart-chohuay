@@ -72,7 +72,7 @@ export default function StatsPage() {
 
                                           {/* Top Selling Chart */}
                                           <div className="glass-card p-5 rounded-3xl bg-white/90">
-                                                 <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">🏆 10 อันดับสินค้าขายดี</h3>
+                                                 <h3 className="font-bold text-gray-700 mb-4 flex items-center gap-2">10 อันดับสินค้าขายดี</h3>
                                                  <div className="h-64">
                                                         <ResponsiveContainer width="100%" height="100%">
                                                                <BarChart data={data?.topSelling} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
@@ -91,7 +91,7 @@ export default function StatsPage() {
 
                                           {/* Pie Chart (Share) */}
                                           <div className="glass-card p-5 rounded-3xl bg-white/90 pb-10">
-                                                 <h3 className="font-bold text-gray-700 mb-2">🍰 สัดส่วนยอดขาย</h3>
+                                                 <h3 className="font-bold text-gray-700 mb-2">สัดส่วนยอดขาย</h3>
                                                  <div className="h-64">
                                                         <ResponsiveContainer width="100%" height="100%">
                                                                <PieChart>

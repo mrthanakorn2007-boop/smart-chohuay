@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useRef, useEffect, Suspense } from "react";
-import { supabase } from "..//lib/supabase";
-import { Plus, X, Image as ImageIcon, Archive, Settings, LayoutGrid, Package, BookUser, Home, Trash2, LayoutList, Pencil, Loader2 } from "lucide-react";
+import { supabase } from "../lib/supabase";
+import { Plus, X, Image as ImageIcon, Archive, Settings, LayoutGrid, Package, BookUser, Home, Trash2, LayoutList, Pencil, Loader2, Lock, Key } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { updateSetting, addQuickButton, removeQuickButton, getDebtors, repayDebt, getCategories, createCategory, deleteCategory } from "../actions";
 
-// 1. แยกเนื้อหาหลักออกมาเป็น Component ย่อย
+// 🔐 รหัสผ่านสำหรับเข้าเมนูตั้งค่า (แก้ตรงนี้ได้เลย)
+const ADMIN_PIN = "6666";
+
 function AdminContent() {
        const searchParams = useSearchParams();
        const initialTab = searchParams.get('tab') || 'stock';
@@ -29,6 +31,10 @@ function AdminContent() {
        const [imageFile, setImageFile] = useState<File | null>(null);
        const [newQuickPrice, setNewQuickPrice] = useState("");
        const fileInputRef = useRef<HTMLInputElement>(null);
+
+       // --- Security State ---
+       const [isSettingsUnlocked, setIsSettingsUnlocked] = useState(false);
+       const [inputPin, setInputPin] = useState("");
 
        useEffect(() => { fetchData(); }, []);
 
@@ -103,6 +109,17 @@ function AdminContent() {
               if (res.success) { alert("✅ รับชำระเรียบร้อย"); fetchData(); }
        };
 
+       // 🔐 ฟังก์ชันปลดล็อกหน้าตั้งค่า
+       const handleUnlockSettings = () => {
+              if (inputPin === ADMIN_PIN) {
+                     setIsSettingsUnlocked(true);
+                     setInputPin("");
+              } else {
+                     alert("รหัสผิดครับ! ลองใหม่");
+                     setInputPin("");
+              }
+       };
+
        return (
               <div className="flex flex-col h-dvh grid-background overflow-hidden">
                      <div className="flex-none p-4 pt-safe flex items-center justify-between z-10">
@@ -161,7 +178,7 @@ function AdminContent() {
                                    )}
                                    {activeTab === 'debt' && (
                                           <div className="space-y-4">
-                                                 {debtors.length === 0 ? <div className="text-center text-gray-400 py-10">ไม่มีคนติดหนี้ เย้! 🎉</div> : debtors.map(order => (
+                                                 {debtors.length === 0 ? <div className="text-center text-gray-400 py-10">ไม่มีคนติดหนี้</div> : debtors.map(order => (
                                                         <div key={order.id} className="glass-card bg-white p-4 rounded-2xl relative overflow-hidden">
                                                                <div className="absolute top-0 left-0 w-1 h-full bg-orange-400"></div>
                                                                <div className="flex justify-between items-start mb-3">
@@ -180,11 +197,39 @@ function AdminContent() {
                                                  <div className="grid grid-cols-4 gap-3">{quickButtons.map(qb => (<div key={qb.id} className="relative bg-blue-50 h-20 rounded-xl flex items-center justify-center border border-blue-100"><span className="text-xl font-bold text-blue-600">{qb.amount}</span><button onClick={() => handleRemoveQuickButton(qb.id)} className="absolute top-1 right-1 text-red-400 bg-white rounded-full p-1 shadow-sm hover:bg-red-50"><Trash2 size={12} /></button></div>))}</div>
                                           </div>
                                    )}
+
+                                   {/* 🔒 SETTINGS (ป้องกันด้วยรหัสผ่าน) */}
                                    {activeTab === 'settings' && (
                                           <div className="glass-card bg-white p-6 rounded-3xl">
-                                                 <h3 className="font-bold mb-4 text-gray-700">ตั้งค่ารับเงิน</h3>
-                                                 <label className="block text-sm text-gray-500 mb-2">เบอร์ PromptPay / รหัสบัตร ปชช.</label>
-                                                 <div className="flex gap-2"><input value={promptpayId} onChange={e => setPromptpayId(e.target.value)} className="flex-1 p-3 border rounded-xl font-mono text-lg outline-none focus:ring-2 focus:ring-blue-500" /><button onClick={handleSavePromptPay} className="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition">บันทึก</button></div>
+                                                 <h3 className="font-bold mb-4 text-gray-700 flex items-center gap-2"><Settings className="text-gray-500" /> ตั้งค่ารับเงิน</h3>
+
+                                                 {!isSettingsUnlocked ? (
+                                                        // หน้า Lock Screen
+                                                        <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in fade-in zoom-in">
+                                                               <div className="bg-red-100 p-4 rounded-full text-red-500"><Lock size={32} /></div>
+                                                               <h4 className="font-bold text-gray-600">กรุณาใส่รหัสผ่านเพื่อแก้ไข</h4>
+                                                               <div className="flex gap-2">
+                                                                      <input
+                                                                             type="password"
+                                                                             maxLength={4}
+                                                                             placeholder="PIN"
+                                                                             value={inputPin}
+                                                                             onChange={(e) => setInputPin(e.target.value)}
+                                                                             className="w-24 text-center text-xl font-bold p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                                                                      />
+                                                                      <button onClick={handleUnlockSettings} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-1 active:scale-95 transition">
+                                                                             <Key size={16} /> ปลดล็อก
+                                                                      </button>
+                                                               </div>
+                                                        </div>
+                                                 ) : (
+                                                        // หน้าตั้งค่าจริง (ปลดล็อกแล้ว)
+                                                        <div className="animate-in fade-in slide-in-from-bottom-4">
+                                                               <label className="block text-sm text-gray-500 mb-2">เบอร์ PromptPay / รหัสบัตร ปชช.</label>
+                                                               <div className="flex gap-2 mb-2"><input value={promptpayId} onChange={e => setPromptpayId(e.target.value)} className="flex-1 p-3 border rounded-xl font-mono text-lg outline-none focus:ring-2 focus:ring-blue-500" /><button onClick={handleSavePromptPay} className="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition">บันทึก</button></div>
+                                                               <p className="text-xs text-green-600 font-bold flex items-center gap-1"><Key size={12} /> ปลดล็อกแล้ว</p>
+                                                        </div>
+                                                 )}
                                           </div>
                                    )}
                             </div>
@@ -215,7 +260,6 @@ function AdminContent() {
        );
 }
 
-// 2. Main Component ที่ห่อด้วย Suspense
 export default function AdminPage() {
        return (
               <Suspense fallback={<div className="h-dvh flex items-center justify-center text-gray-400"><Loader2 className="animate-spin mr-2" /> กำลังโหลด...</div>}>

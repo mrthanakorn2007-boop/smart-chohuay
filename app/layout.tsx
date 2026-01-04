@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "ร้านแม่ (Smart Chohuay)",
+  title: "ร้านแม่ (Chohuay)",
   description: "ระบบขายของหน้าร้าน POS",
   appleWebApp: {
     capable: true,

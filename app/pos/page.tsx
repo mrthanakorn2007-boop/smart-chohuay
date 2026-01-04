@@ -274,7 +274,7 @@ export default function POS() {
                                                                <div className="p-2 bg-white border rounded-lg">
                                                                       <QRCodeSVG value={ppPayload} size={80} />
                                                                </div>
-                                                               <p className="text-[10px] text-gray-400">ขอบคุณที่อุดหนุนครับ 🙏</p>
+                                                               <p className="text-[10px] text-gray-400">ขอบคุณที่อุดหนุนครับ</p>
                                                         </div>
                                                  </div>
 
