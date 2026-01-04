@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Trash2, X, Loader2, Image as ImageIcon, Camera, User, Phone, FileText, Home, LayoutGrid, Download, CheckCircle } from "lucide-react";
+// ✅ เพิ่ม ArrowLeft เข้ามาแล้วครับ
+import { ShoppingCart, Trash2, X, Loader2, Image as ImageIcon, Camera, User, Phone, FileText, Home, LayoutGrid, Download, CheckCircle, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getPOSData, submitOrder } from "../actions";
 import { supabase } from "../lib/supabase";
 import generatePayload from "promptpay-qr";
 import { QRCodeSVG } from "qrcode.react";
-import html2canvas from "html2canvas"; // 
+import html2canvas from "html2canvas";
 
 export default function POS() {
        const [products, setProducts] = useState<any[]>([]);
@@ -68,7 +69,7 @@ export default function POS() {
               if (res.success) {
                      // ✅ เตรียมข้อมูลใบเสร็จ
                      setReceiptData({
-                            orderId: res.orderId, // ได้รับจาก actions แล้ว
+                            orderId: res.orderId,
                             items: [...cart],
                             total: total,
                             paymentMethod: method,
@@ -88,11 +89,10 @@ export default function POS() {
               setProcessing(false);
        };
 
-       // ฟังก์ชันดาวน์โหลดใบเสร็จเป็นรูปภาพ
        const handleDownloadReceipt = async () => {
               if (!receiptRef.current) return;
               try {
-                     const canvas = await html2canvas(receiptRef.current, { scale: 2 }); // scale 2 เพื่อความชัด
+                     const canvas = await html2canvas(receiptRef.current, { scale: 2 });
                      const image = canvas.toDataURL("image/png");
                      const link = document.createElement("a");
                      link.href = image;
@@ -106,7 +106,7 @@ export default function POS() {
        return (
               <div className="flex flex-col h-dvh grid-background overflow-hidden">
 
-                     {/* Header & Tabs ... (Code เดิม) */}
+                     {/* Header */}
                      <div className="flex-none p-4 pt-safe flex justify-between items-center z-20">
                             <div className="flex items-center gap-2">
                                    <div className="bg-blue-600 p-2 rounded-xl text-white shadow-lg shadow-blue-200"><ShoppingCart size={20} /></div>
@@ -115,6 +115,7 @@ export default function POS() {
                             <Link href="/" className="glass-card px-3 py-2 rounded-full text-gray-600 hover:bg-white transition flex items-center gap-1 text-sm font-bold"><Home size={16} /> เมนูหลัก</Link>
                      </div>
 
+                     {/* Categories */}
                      <div className="flex-none px-4 pb-2 z-10">
                             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
                                    <button onClick={() => setSelectedCat('ALL')} className={`flex-shrink-0 px-4 py-2 rounded-xl font-bold text-sm transition-all border ${selectedCat === 'ALL' ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'glass-card text-gray-600 border-transparent hover:bg-white'}`}><div className="flex items-center gap-1"><LayoutGrid size={14} /> ทั้งหมด</div></button>
@@ -122,6 +123,7 @@ export default function POS() {
                             </div>
                      </div>
 
+                     {/* Quick Buttons */}
                      <div className="flex-none px-4 pb-2 z-10">
                             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
                                    {quickButtons.map(qb => (
@@ -131,6 +133,7 @@ export default function POS() {
                             </div>
                      </div>
 
+                     {/* Products */}
                      <div className="flex-1 overflow-y-auto px-4 pb-4">
                             {loading ? <div className="text-center mt-20"><Loader2 className="animate-spin inline text-blue-500" size={32} /></div> :
                                    <div className="grid grid-cols-3 gap-3 pb-24 animate-in fade-in duration-300">
@@ -148,6 +151,7 @@ export default function POS() {
                             }
                      </div>
 
+                     {/* Cart Bar */}
                      <AnimatePresence>
                             {cart.length > 0 && !isCartOpen && (
                                    <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="absolute bottom-0 w-full px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-40">
@@ -159,6 +163,7 @@ export default function POS() {
                             )}
                      </AnimatePresence>
 
+                     {/* Cart Modal */}
                      <AnimatePresence>
                             {isCartOpen && (
                                    <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="fixed inset-0 z-50 bg-gray-50/95 backdrop-blur-md flex flex-col h-dvh">
@@ -184,7 +189,7 @@ export default function POS() {
                                                                       <button onClick={() => handleCheckout('CASH')} disabled={processing} className="py-4 bg-gray-800 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition flex justify-center gap-2 text-lg">💵 เงินสด</button>
                                                                       <button onClick={() => setPaymentMode('QR')} disabled={processing} className="py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition flex justify-center gap-2 text-lg">📱 QR Code</button>
                                                                </div>
-                                                               <button onClick={() => setPaymentMode('CREDIT')} className="w-full py-3 bg-orange-100 text-orange-700 rounded-2xl font-bold flex justify-center gap-2 border-2 border-orange-200">เซ็นไว้ก่อน(ติดหนี้)</button>
+                                                               <button onClick={() => setPaymentMode('CREDIT')} className="w-full py-3 bg-orange-100 text-orange-700 rounded-2xl font-bold flex justify-center gap-2 border-2 border-orange-200">📝 แปะโป้ง (ติดหนี้)</button>
                                                         </div>
                                                  )}
 
@@ -229,7 +234,6 @@ export default function POS() {
                                                         <button onClick={() => setShowReceipt(false)} className="bg-gray-200 p-1 rounded-full"><X size={20} /></button>
                                                  </div>
 
-                                                 {/* ส่วนที่จะถูกแคปรูป */}
                                                  <div className="p-6 bg-white overflow-y-auto" ref={receiptRef}>
                                                         <div className="text-center mb-4">
                                                                <div className="bg-blue-600 text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-2"><ShoppingCart size={24} /></div>
@@ -267,11 +271,10 @@ export default function POS() {
                                                         )}
 
                                                         <div className="mt-6 flex flex-col items-center gap-2">
-                                                               {/* QR Code สำหรับติดต่อ หรือจ่ายเงินครั้งหน้า */}
                                                                <div className="p-2 bg-white border rounded-lg">
                                                                       <QRCodeSVG value={ppPayload} size={80} />
                                                                </div>
-                                                               <p className="text-[10px] text-gray-400">ขอบคุณที่อุดหนุนครับ</p>
+                                                               <p className="text-[10px] text-gray-400">ขอบคุณที่อุดหนุนครับ 🙏</p>
                                                         </div>
                                                  </div>
 
