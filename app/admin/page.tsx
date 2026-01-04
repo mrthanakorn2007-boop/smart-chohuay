@@ -2,14 +2,13 @@
 
 import { useState, useRef, useEffect, Suspense } from "react";
 import { supabase } from "../lib/supabase";
-import { Plus, X, Image as ImageIcon, Archive, Settings, LayoutGrid, Package, BookUser, Home, Trash2, LayoutList, Pencil, Loader2, Lock, Key } from "lucide-react";
+import { Plus, X, Image as ImageIcon, Archive, Settings, LayoutGrid, Package, BookUser, Home, Trash2, LayoutList, Pencil, Loader2, Lock, Key, ArrowUp, ArrowDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { updateSetting, addQuickButton, removeQuickButton, getDebtors, repayDebt, getCategories, createCategory, deleteCategory } from "../actions";
+import { updateSetting, addQuickButton, removeQuickButton, getDebtors, repayDebt, getCategories, createCategory, deleteCategory, updateCategoryOrder } from "../actions";
 
-// 🔐 รหัสผ่านสำหรับเข้าเมนูตั้งค่า (แก้ตรงนี้ได้เลย)
-const ADMIN_PIN = "6666";
+const ADMIN_PIN = "1234";
 
 function AdminContent() {
        const searchParams = useSearchParams();
@@ -23,16 +22,19 @@ function AdminContent() {
        const [debtors, setDebtors] = useState<any[]>([]);
        const [loading, setLoading] = useState(false);
 
+       // Forms
        const [isEditing, setIsEditing] = useState(false);
        const [editingId, setEditingId] = useState<number | null>(null);
        const [formData, setFormData] = useState<any>({ name: "", price: "", category_id: "", cost: "", stock: "", image_url: "" });
 
+       // ✅ เพิ่ม State สำหรับลำดับหมวดหมู่
        const [newCatName, setNewCatName] = useState("");
+       const [newCatOrder, setNewCatOrder] = useState("99"); // ค่าเริ่มต้น
+
        const [imageFile, setImageFile] = useState<File | null>(null);
        const [newQuickPrice, setNewQuickPrice] = useState("");
        const fileInputRef = useRef<HTMLInputElement>(null);
 
-       // --- Security State ---
        const [isSettingsUnlocked, setIsSettingsUnlocked] = useState(false);
        const [inputPin, setInputPin] = useState("");
 
@@ -97,7 +99,20 @@ function AdminContent() {
               setIsEditing(false); setFormData({ name: "", price: "", category_id: "", cost: "", stock: "", image_url: "" }); setImageFile(null); setEditingId(null); fetchData();
        };
 
-       const handleCreateCategory = async () => { if (!newCatName) return; await createCategory(newCatName); setNewCatName(""); fetchData(); };
+       const handleCreateCategory = async () => {
+              if (!newCatName) return;
+              await createCategory(newCatName, Number(newCatOrder));
+              setNewCatName("");
+              fetchData();
+       };
+
+       // ✅ ฟังก์ชันอัปเดตลำดับทันทีเมื่อแก้เลข
+       const handleUpdateCatOrder = async (id: number, newOrder: string) => {
+              await updateCategoryOrder(id, Number(newOrder));
+              // ไม่ต้อง fetch ใหม่ทุกครั้งเพื่อให้พิมพ์ต่อเนื่องได้ (หรือจะ fetch ก็ได้ถ้าต้องการความชัวร์)
+              // แต่ในที่นี้เรา fetch ใหม่เมื่อ onBlur หรือ Enter ดีกว่า
+       };
+
        const handleDeleteCategory = async (id: number) => { if (confirm("ลบหมวดหมู่นี้?")) { await deleteCategory(id); fetchData(); } };
        const handleArchive = async (id: number) => { if (confirm("ปิดการใช้งานสินค้าตัวนี้?")) { await supabase.from('products').update({ is_active: false }).eq('id', id); fetchData(); } };
        const handleSavePromptPay = async () => { await updateSetting('promptpay_id', promptpayId); alert("บันทึกเบอร์พร้อมเพย์แล้ว ✅"); };
@@ -109,7 +124,6 @@ function AdminContent() {
               if (res.success) { alert("✅ รับชำระเรียบร้อย"); fetchData(); }
        };
 
-       // 🔐 ฟังก์ชันปลดล็อกหน้าตั้งค่า
        const handleUnlockSettings = () => {
               if (inputPin === ADMIN_PIN) {
                      setIsSettingsUnlocked(true);
@@ -169,13 +183,47 @@ function AdminContent() {
                                                  </div>
                                           </>
                                    )}
+
+                                   {/* ✅ แท็บจัดการหมวดหมู่ (แบบเรียงลำดับได้) */}
                                    {activeTab === 'category' && (
                                           <div className="glass-card bg-white p-6 rounded-3xl">
                                                  <h3 className="font-bold mb-4 text-gray-700">จัดการหมวดหมู่สินค้า</h3>
-                                                 <div className="flex gap-2 mb-6"><input placeholder="ชื่อหมวดหมู่ใหม่" value={newCatName} onChange={e => setNewCatName(e.target.value)} className="flex-1 p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /><button onClick={handleCreateCategory} className="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition">เพิ่ม</button></div>
-                                                 <div className="space-y-2">{categories.map(c => (<div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border"><span className="font-bold text-gray-700">{c.name}</span><button onClick={() => handleDeleteCategory(c.id)} className="text-red-400 p-2 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button></div>))}</div>
+                                                 <div className="flex gap-2 mb-6">
+                                                        <div className="flex-1 flex gap-2">
+                                                               <input placeholder="ชื่อหมวดหมู่" value={newCatName} onChange={e => setNewCatName(e.target.value)} className="flex-[2] p-3 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" />
+                                                               <input type="number" placeholder="ลำดับ" value={newCatOrder} onChange={e => setNewCatOrder(e.target.value)} className="flex-1 p-3 border rounded-xl outline-none text-center" />
+                                                        </div>
+                                                        <button onClick={handleCreateCategory} className="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition">เพิ่ม</button>
+                                                 </div>
+
+                                                 <div className="space-y-2">
+                                                        {categories.map(c => (
+                                                               <div key={c.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border">
+                                                                      <div className="flex items-center gap-3">
+                                                                             <div className="bg-gray-200 text-gray-500 w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs">
+                                                                                    {c.sort_order}
+                                                                             </div>
+                                                                             <span className="font-bold text-gray-700">{c.name}</span>
+                                                                      </div>
+                                                                      <div className="flex items-center gap-2">
+                                                                             <input
+                                                                                    type="number"
+                                                                                    className="w-12 p-1 text-center border rounded bg-white text-xs"
+                                                                                    defaultValue={c.sort_order}
+                                                                                    onBlur={(e) => {
+                                                                                           handleUpdateCatOrder(c.id, e.target.value);
+                                                                                           fetchData(); // อัปเดตหน้าจอเมื่อแก้เสร็จ
+                                                                                    }}
+                                                                             />
+                                                                             <button onClick={() => handleDeleteCategory(c.id)} className="text-red-400 p-2 hover:bg-red-50 rounded-lg"><Trash2 size={16} /></button>
+                                                                      </div>
+                                                               </div>
+                                                        ))}
+                                                 </div>
+                                                 <p className="text-xs text-gray-400 mt-4 text-center">* แก้ไขตัวเลขลำดับ แล้วกดที่อื่นเพื่อบันทึก (เลขน้อยขึ้นก่อน)</p>
                                           </div>
                                    )}
+
                                    {activeTab === 'debt' && (
                                           <div className="space-y-4">
                                                  {debtors.length === 0 ? <div className="text-center text-gray-400 py-10">ไม่มีคนติดหนี้</div> : debtors.map(order => (
@@ -198,32 +246,16 @@ function AdminContent() {
                                           </div>
                                    )}
 
-                                   {/* 🔒 SETTINGS (ป้องกันด้วยรหัสผ่าน) */}
                                    {activeTab === 'settings' && (
                                           <div className="glass-card bg-white p-6 rounded-3xl">
                                                  <h3 className="font-bold mb-4 text-gray-700 flex items-center gap-2"><Settings className="text-gray-500" /> ตั้งค่ารับเงิน</h3>
-
                                                  {!isSettingsUnlocked ? (
-                                                        // หน้า Lock Screen
                                                         <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in fade-in zoom-in">
                                                                <div className="bg-red-100 p-4 rounded-full text-red-500"><Lock size={32} /></div>
                                                                <h4 className="font-bold text-gray-600">กรุณาใส่รหัสผ่านเพื่อแก้ไข</h4>
-                                                               <div className="flex gap-2">
-                                                                      <input
-                                                                             type="password"
-                                                                             maxLength={4}
-                                                                             placeholder="PIN"
-                                                                             value={inputPin}
-                                                                             onChange={(e) => setInputPin(e.target.value)}
-                                                                             className="w-24 text-center text-xl font-bold p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-                                                                      />
-                                                                      <button onClick={handleUnlockSettings} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-1 active:scale-95 transition">
-                                                                             <Key size={16} /> ปลดล็อก
-                                                                      </button>
-                                                               </div>
+                                                               <div className="flex gap-2"><input type="password" maxLength={4} placeholder="PIN" value={inputPin} onChange={(e) => setInputPin(e.target.value)} className="w-24 text-center text-xl font-bold p-2 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500" /><button onClick={handleUnlockSettings} className="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold flex items-center gap-1 active:scale-95 transition"><Key size={16} /> ปลดล็อก</button></div>
                                                         </div>
                                                  ) : (
-                                                        // หน้าตั้งค่าจริง (ปลดล็อกแล้ว)
                                                         <div className="animate-in fade-in slide-in-from-bottom-4">
                                                                <label className="block text-sm text-gray-500 mb-2">เบอร์ PromptPay / รหัสบัตร ปชช.</label>
                                                                <div className="flex gap-2 mb-2"><input value={promptpayId} onChange={e => setPromptpayId(e.target.value)} className="flex-1 p-3 border rounded-xl font-mono text-lg outline-none focus:ring-2 focus:ring-blue-500" /><button onClick={handleSavePromptPay} className="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-95 transition">บันทึก</button></div>

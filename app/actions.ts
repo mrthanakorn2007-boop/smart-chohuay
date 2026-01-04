@@ -5,7 +5,8 @@ import { supabase } from './lib/supabase';
 const getCurrentISO = () => new Date().toISOString();
 
 export async function getPOSData() {
-       const { data: categories } = await supabase.from('categories').select('*').order('id');
+       // ✅ เรียงหมวดหมู่ตาม sort_order (ถ้าเท่ากันเรียงตาม id)
+       const { data: categories } = await supabase.from('categories').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true });
        const { data: products } = await supabase.from('products').select('*').eq('is_active', true).order('category_id');
        const { data: quickButtons } = await supabase.from('quick_buttons').select('*').order('amount');
        const { data: settings } = await supabase.from('settings').select('*').eq('key', 'promptpay_id').single();
@@ -19,13 +20,22 @@ export async function getPOSData() {
 }
 
 export async function getCategories() {
-       const { data } = await supabase.from('categories').select('*').order('id');
+       const { data } = await supabase.from('categories').select('*').order('sort_order', { ascending: true }).order('id', { ascending: true });
        return data || [];
 }
-export async function createCategory(name: string) {
-       const { error } = await supabase.from('categories').insert({ name });
+
+// ✅ เพิ่ม sort_order ตอนสร้างหมวดหมู่
+export async function createCategory(name: string, sortOrder: number) {
+       const { error } = await supabase.from('categories').insert({ name, sort_order: sortOrder });
        return { success: !error, message: error?.message };
 }
+
+// ✅ เพิ่มฟังก์ชันอัปเดตลำดับหมวดหมู่
+export async function updateCategoryOrder(id: number, sortOrder: number) {
+       const { error } = await supabase.from('categories').update({ sort_order: sortOrder }).eq('id', id);
+       return { success: !error };
+}
+
 export async function deleteCategory(id: number) {
        const { error } = await supabase.from('categories').delete().eq('id', id);
        return { success: !error, message: error?.message };
@@ -56,26 +66,25 @@ export async function submitOrder(cartItems: any[], total: number, paymentMethod
                      order_id: order.id,
                      product_id: item.id === 999 ? null : item.id,
                      product_name: item.name,
-                     quantity: 1,
+                     quantity: item.quantity, // ✅ ใช้จำนวนจริงที่รวมมาแล้ว
                      price: item.price,
-                     cost: item.cost || 0 // บันทึกต้นทุนไปด้วย
+                     cost: item.cost || 0
               });
 
               if (item.id !== 999) {
-                     await supabase.rpc('decrement_stock', { row_id: item.id, amount: 1 });
+                     // ✅ ตัดสต็อกตามจำนวน (amount = item.quantity)
+                     await supabase.rpc('decrement_stock', { row_id: item.id, amount: item.quantity });
               }
        }
 
        try { await sendToDiscord(order.id, cartItems, total, paymentMethod, slipUrl, debtorInfo); } catch (err) { console.error(err); }
-
-       // ✅ ส่ง orderId กลับไปให้หน้าบ้านเพื่อทำใบเสร็จ
        return { success: true, orderId: order.id };
 }
 
+// ... (ฟังก์ชันอื่นๆ: getSalesStats, getDebtors, repayDebt, updateSetting, etc. เหมือนเดิม ไม่ต้องแก้)
 export async function getSalesStats(period: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL') {
        let startDate = new Date();
        startDate.setHours(0, 0, 0, 0);
-
        if (period === 'WEEK') startDate.setDate(startDate.getDate() - 7);
        else if (period === 'MONTH') startDate.setMonth(startDate.getMonth() - 1);
        else if (period === 'ALL') startDate = new Date(0);
@@ -101,7 +110,6 @@ export async function getSalesStats(period: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL') 
 
        return { topSelling, totalSales };
 }
-
 export async function getDebtors() {
        const { data } = await supabase.from('orders').select('*, order_items(*)').eq('status', 'UNPAID').order('created_at', { ascending: false });
        return data || [];
@@ -124,7 +132,6 @@ export async function deleteOrder(orderId: number) {
        await supabase.from('orders').delete().eq('id', orderId);
        return { success: true };
 }
-
 async function sendToDiscord(orderId: number, items: any[], total: number, paymentMethod: string, slipUrl?: string, debtorInfo?: any) {
        const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
        if (!webhookUrl) return;
@@ -134,7 +141,7 @@ async function sendToDiscord(orderId: number, items: any[], total: number, payme
               description: `เวลา: ${new Date().toLocaleTimeString('th-TH')}`,
               color: isCredit ? 16753920 : 5763719,
               fields: [
-                     { name: "สินค้า", value: items.map((i: any) => `${i.name} (${i.price})`).join('\n') || "-" },
+                     { name: "สินค้า", value: items.map((i: any) => `${i.name} (${i.price}) x${i.quantity}`).join('\n') || "-" }, // โชว์จำนวนใน Discord ด้วย
                      { name: "ยอดรวม", value: `**${total}** บาท` },
                      { name: "จ่ายโดย", value: paymentMethod }
               ]
