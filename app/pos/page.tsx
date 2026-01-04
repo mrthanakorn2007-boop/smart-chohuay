@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-// ✅ เพิ่ม ArrowLeft เข้ามาแล้วครับ
-import { ShoppingCart, Trash2, X, Loader2, Image as ImageIcon, Camera, User, Phone, FileText, Home, LayoutGrid, Download, CheckCircle, ArrowLeft } from "lucide-react";
+import { ShoppingCart, Trash2, X, Loader2, Image as ImageIcon, Camera, User, Phone, FileText, Home, LayoutGrid, Download, CheckCircle, ArrowLeft, Banknote } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getPOSData, submitOrder } from "../actions";
@@ -23,7 +22,10 @@ export default function POS() {
        const [cart, setCart] = useState<any[]>([]);
        const [isCartOpen, setIsCartOpen] = useState(false);
        const [processing, setProcessing] = useState(false);
-       const [paymentMode, setPaymentMode] = useState<'SELECT' | 'QR' | 'CREDIT'>('SELECT');
+
+       // ✅ เพิ่ม 'CASH' เข้าไปใน PaymentMode เพื่อให้มีหน้าจอแยก
+       const [paymentMode, setPaymentMode] = useState<'SELECT' | 'CASH' | 'QR' | 'CREDIT'>('SELECT');
+
        const [slipFile, setSlipFile] = useState<File | null>(null);
        const fileInputRef = useRef<HTMLInputElement>(null);
        const [debtorName, setDebtorName] = useState("");
@@ -57,7 +59,10 @@ export default function POS() {
               setProcessing(true);
               let slipUrl = "";
               if (slipFile) {
-                     const fileName = `slip-${Date.now()}.jpg`;
+                     // ใช้ชื่อไฟล์ให้สื่อความหมาย
+                     const prefix = method === 'CASH' ? 'cash-proof' : (method === 'CREDIT' ? 'debt-proof' : 'slip');
+                     const fileName = `${prefix}-${Date.now()}.jpg`;
+
                      const { data } = await supabase.storage.from('slips').upload(fileName, slipFile);
                      if (data) { const { data: pUrl } = supabase.storage.from('slips').getPublicUrl(fileName); slipUrl = pUrl.publicUrl; }
               }
@@ -163,7 +168,7 @@ export default function POS() {
                             )}
                      </AnimatePresence>
 
-                     {/* Cart Modal */}
+                     {/* Cart Modal & Payment Flow */}
                      <AnimatePresence>
                             {isCartOpen && (
                                    <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", damping: 25, stiffness: 300 }} className="fixed inset-0 z-50 bg-gray-50/95 backdrop-blur-md flex flex-col h-dvh">
@@ -186,13 +191,36 @@ export default function POS() {
                                                         <div className="space-y-3">
                                                                <div className="flex justify-between items-end px-2 mb-4"><span className="text-gray-500 font-medium">ยอดสุทธิ</span><span className="text-5xl font-extrabold text-blue-600">{total}.-</span></div>
                                                                <div className="grid grid-cols-2 gap-3">
-                                                                      <button onClick={() => handleCheckout('CASH')} disabled={processing} className="py-4 bg-gray-800 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition flex justify-center gap-2 text-lg">💵 เงินสด</button>
+                                                                      {/* ✅ เปลี่ยนปุ่มเงินสด ให้เข้าสู่โหมด CASH แทนการบันทึกเลย */}
+                                                                      <button onClick={() => setPaymentMode('CASH')} disabled={processing} className="py-4 bg-gray-800 text-white rounded-2xl font-bold shadow-lg active:scale-95 transition flex justify-center gap-2 text-lg">💵 เงินสด</button>
                                                                       <button onClick={() => setPaymentMode('QR')} disabled={processing} className="py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition flex justify-center gap-2 text-lg">📱 QR Code</button>
                                                                </div>
-                                                               <button onClick={() => setPaymentMode('CREDIT')} className="w-full py-3 bg-orange-100 text-orange-700 rounded-2xl font-bold flex justify-center gap-2 border-2 border-orange-200">📝 แปะโป้ง (ติดหนี้)</button>
+                                                               <button onClick={() => setPaymentMode('CREDIT')} className="w-full py-3 bg-orange-100 text-orange-700 rounded-2xl font-bold flex justify-center gap-2 border-2 border-orange-200">เซ็นไว้ก่อน(ติดหนี้)</button>
                                                         </div>
                                                  )}
 
+                                                 {/* --- ✅ หน้าจอรับเงินสด (เพิ่มใหม่) --- */}
+                                                 {paymentMode === 'CASH' && (
+                                                        <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4">
+                                                               <div className="bg-gray-800 text-white p-6 rounded-3xl mb-4 shadow-lg text-center w-full">
+                                                                      <Banknote size={48} className="mx-auto mb-2 text-green-400" />
+                                                                      <p className="text-gray-300 font-medium">ยอดรับเงินสด</p>
+                                                                      <p className="text-5xl font-extrabold mt-1">{total}.-</p>
+                                                               </div>
+
+                                                               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={e => setSlipFile(e.target.files?.[0] || null)} />
+                                                               <button onClick={() => fileInputRef.current?.click()} className={`w-full py-3 mb-3 border-2 border-dashed rounded-2xl font-bold flex justify-center items-center gap-2 ${slipFile ? 'bg-green-50 text-green-700 border-green-500' : 'text-gray-400'}`}>
+                                                                      <Camera size={20} /> {slipFile ? "ถ่ายรูปหลักฐานแล้ว" : "ถ่ายรูปหลักฐาน (ถ้ามี)"}
+                                                               </button>
+
+                                                               <button onClick={() => handleCheckout('CASH')} disabled={processing} className="w-full py-4 bg-green-600 text-white rounded-2xl font-bold shadow-lg text-lg">
+                                                                      {processing ? "กำลังบันทึก..." : "ยืนยันรับเงินเรียบร้อย"}
+                                                               </button>
+                                                               <button onClick={() => setPaymentMode('SELECT')} className="mt-4 text-gray-400 font-bold flex items-center gap-2"><ArrowLeft size={16} /> เปลี่ยนวิธีจ่าย</button>
+                                                        </div>
+                                                 )}
+
+                                                 {/* --- หน้าจอ QR (เหมือนเดิม) --- */}
                                                  {paymentMode === 'QR' && (
                                                         <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4">
                                                                <div className="bg-white p-4 border rounded-3xl mb-4 shadow-sm text-center">
@@ -206,6 +234,8 @@ export default function POS() {
                                                                <button onClick={() => setPaymentMode('SELECT')} className="mt-4 text-gray-400 font-bold flex items-center gap-2"><ArrowLeft size={16} /> เปลี่ยนวิธีจ่าย</button>
                                                         </div>
                                                  )}
+
+                                                 {/* --- หน้าจอ ติดหนี้ (เหมือนเดิม) --- */}
                                                  {paymentMode === 'CREDIT' && (
                                                         <div className="animate-in fade-in slide-in-from-bottom-4 space-y-3">
                                                                <h3 className="font-bold text-orange-600 flex items-center gap-2 text-lg mb-2"><FileText /> ลงบัญชีติดหนี้</h3>
@@ -274,7 +304,7 @@ export default function POS() {
                                                                <div className="p-2 bg-white border rounded-lg">
                                                                       <QRCodeSVG value={ppPayload} size={80} />
                                                                </div>
-                                                               <p className="text-[10px] text-gray-400">ขอบคุณที่อุดหนุนครับ</p>
+                                                               <p className="text-[10px] text-gray-400">ขอบคุณที่อุดหนุนครับ 🙏</p>
                                                         </div>
                                                  </div>
 
