@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { updateSetting, addQuickButton, removeQuickButton, getDebtors, repayDebt, getCategories, createCategory, deleteCategory, updateCategoryOrder } from "../actions";
 
-const ADMIN_PIN = "1234";
+const ADMIN_PIN = "0806";
 
 function AdminContent() {
        const searchParams = useSearchParams();

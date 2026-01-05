@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, TrendingUp, DollarSign, PieChart as PieIcon, BarChart3, Calendar, Loader2 } from "lucide-react";
-// ✅ ต้อง install recharts ก่อนนะครับ
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend } from "recharts";
 import { getSalesStats } from "../actions";
 
