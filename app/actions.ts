@@ -82,21 +82,32 @@ export async function submitOrder(cartItems: any[], total: number, paymentMethod
 }
 
 // ... (ฟังก์ชันอื่นๆ: getSalesStats, getDebtors, repayDebt, updateSetting, etc. เหมือนเดิม ไม่ต้องแก้)
-export async function getSalesStats(period: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL') {
+export async function getSalesStats(period: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL' | 'CUSTOM', customDays?: number) {
        let startDate = new Date();
        startDate.setHours(0, 0, 0, 0);
-       if (period === 'WEEK') startDate.setDate(startDate.getDate() - 7);
-       else if (period === 'MONTH') startDate.setMonth(startDate.getMonth() - 1);
-       else if (period === 'ALL') startDate = new Date(0);
+
+       if (period === 'CUSTOM' && customDays) {
+              startDate.setDate(startDate.getDate() - customDays);
+       } else if (period === 'WEEK') {
+              startDate.setDate(startDate.getDate() - 7);
+       } else if (period === 'MONTH') {
+              startDate.setMonth(startDate.getMonth() - 1);
+       } else if (period === 'ALL') {
+              startDate = new Date(0);
+       }
 
        const { data: items } = await supabase
               .from('order_items')
-              .select('product_name, quantity, price, created_at')
+              .select('product_name, quantity, price, cost, created_at')
               .gte('created_at', startDate.toISOString());
 
-       if (!items) return { topSelling: [], totalSales: 0 };
+       if (!items) return { topSelling: [], totalSales: 0, totalCost: 0, totalProfit: 0, profitMargin: 0 };
 
        const totalSales = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+       const totalCost = items.reduce((sum, item) => sum + (item.cost * item.quantity), 0);
+       const totalProfit = totalSales - totalCost;
+       const profitMargin = totalSales > 0 ? ((totalProfit / totalSales) * 100) : 0;
+
        const productMap: Record<string, number> = {};
        items.forEach(item => {
               if (!productMap[item.product_name]) productMap[item.product_name] = 0;
@@ -108,7 +119,7 @@ export async function getSalesStats(period: 'TODAY' | 'WEEK' | 'MONTH' | 'ALL') 
               .sort((a, b) => b.value - a.value)
               .slice(0, 10);
 
-       return { topSelling, totalSales };
+       return { topSelling, totalSales, totalCost, totalProfit, profitMargin };
 }
 export async function getDebtors() {
        const { data } = await supabase.from('orders').select('*, order_items(*)').eq('status', 'UNPAID').order('created_at', { ascending: false });

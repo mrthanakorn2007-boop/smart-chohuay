@@ -1,8 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Trash2, X, Loader2, Image as ImageIcon, Camera, User, Phone, FileText, Home, LayoutGrid, Download, CheckCircle, ArrowLeft, Banknote, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Trash2, X, Loader2, Image as ImageIcon, Camera, User, Phone, FileText, Home, LayoutGrid, Download, CheckCircle, ArrowLeft, Banknote, Plus, Minus, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getPOSData, submitOrder } from "../actions";
@@ -18,6 +18,8 @@ export default function POS() {
        const [promptpayId, setPromptpayId] = useState("");
        const [loading, setLoading] = useState(true);
        const [selectedCat, setSelectedCat] = useState<number | 'ALL'>('ALL');
+       const [searchQuery, setSearchQuery] = useState("");
+       const [recentlySold, setRecentlySold] = useState<number[]>([]);
 
        const [cart, setCart] = useState<any[]>([]);
        const [isCartOpen, setIsCartOpen] = useState(false);
@@ -41,10 +43,46 @@ export default function POS() {
                      setCategories(data.categories || []);
                      setQuickButtons(data.quickButtons);
                      setPromptpayId(data.promptpayId);
+
+                     // Load recently sold products
+                     const { data: recentItems } = await supabase
+                            .from('order_items')
+                            .select('product_id')
+                            .not('product_id', 'is', null)
+                            .order('created_at', { ascending: false })
+                            .limit(100);
+
+                     if (recentItems) {
+                            const recentIds = [...new Set(recentItems.map(item => item.product_id))];
+                            setRecentlySold(recentIds);
+                     }
               } catch (e) { } finally { setLoading(false); }
        }
 
-       const filteredProducts = selectedCat === 'ALL' ? products : products.filter(p => p.category_id === selectedCat);
+       // Filter and sort products
+       let filteredProducts = selectedCat === 'ALL' ? products : products.filter(p => p.category_id === selectedCat);
+
+       // Apply search filter
+       if (searchQuery.trim()) {
+              filteredProducts = filteredProducts.filter(p =>
+                     p.name.toLowerCase().includes(searchQuery.toLowerCase())
+              );
+       }
+
+       // Sort by recently sold (most recent first)
+       filteredProducts = filteredProducts.sort((a, b) => {
+              const aIndex = recentlySold.indexOf(a.id);
+              const bIndex = recentlySold.indexOf(b.id);
+
+              // If both are recently sold, sort by which was more recent
+              if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+              // If only a is recently sold, it comes first
+              if (aIndex !== -1) return -1;
+              // If only b is recently sold, it comes first
+              if (bIndex !== -1) return 1;
+              // Neither is recently sold, maintain original order
+              return 0;
+       });
        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
        const ppPayload = generatePayload(promptpayId || "000", { amount: total > 0 ? total : 0 });
 
@@ -147,12 +185,34 @@ export default function POS() {
                             </div>
                      </div>
 
+              {/* Search Bar */}
+              <div className="flex-none px-4 pb-2 z-10">
+                     <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                                   type="text"
+                                   placeholder="ค้นหาสินค้า..."
+                                   value={searchQuery}
+                                   onChange={(e) => setSearchQuery(e.target.value)}
+                                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white font-medium outline-none focus:ring-2 focus:ring-blue-500 transition"
+                            />
+                            {searchQuery && (
+                                   <button
+                                          onClick={() => setSearchQuery("")}
+                                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                   >
+                                          <X size={18} />
+                                   </button>
+                            )}
+                     </div>
+              </div>
+
                      {/* Quick Buttons */}
                      <div className="flex-none px-4 pb-2 z-10">
                             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
                                    {quickButtons.map(qb => (
                                           <button key={qb.id} onClick={() => addToCart({ id: 999, name: `ปุ่มด่วน ${qb.amount}`, price: qb.amount, category: 'Quick' })}
-                                                 className="glass-card flex-shrink-0 w-16 h-12 rounded-xl font-bold text-blue-600 text-lg active:scale-90 transition flex items-center justify-center border border-blue-50">{qb.amount}</button>
+                                                  className="glass-card flex-shrink-0 w-16 h-12 rounded-xl font-bold text-blue-600 text-lg active:scale-90 transition flex items-center justify-center border border-blue-50">{qb.amount}</button>
                                    ))}
                             </div>
                      </div>
@@ -169,9 +229,10 @@ export default function POS() {
                                                                <span className="text-xs font-bold text-gray-700 line-clamp-1 w-full text-center">{p.name}</span>
                                                                <div className="mt-1 w-full text-center"><span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">{p.price}.-</span></div>
                                                                <span className={`absolute top-1 right-1 text-[8px] px-1.5 py-0.5 rounded-full text-white font-bold shadow-sm ${p.stock < 5 ? 'bg-red-500' : 'bg-gray-400/80'}`}>{p.stock}</span>
-                                                        </button>
-                                                 ))
-                                          )}
+                                                                {recentlySold.includes(p.id) && <span className="absolute top-1 left-1 text-[8px] px-1.5 py-0.5 rounded-full bg-green-500 text-white font-bold shadow-sm">เพิ่งขาย</span>}
+                                                         </button>
+                                                  ))
+                                           )}
                                    </div>
                             }
                      </div>

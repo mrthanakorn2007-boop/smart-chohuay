@@ -21,6 +21,7 @@ function AdminContent() {
        const [promptpayId, setPromptpayId] = useState("");
        const [debtors, setDebtors] = useState<any[]>([]);
        const [loading, setLoading] = useState(false);
+       const [productSearch, setProductSearch] = useState("");
 
        // Forms
        const [isEditing, setIsEditing] = useState(false);
@@ -160,26 +161,48 @@ function AdminContent() {
                                    {activeTab === 'stock' && (
                                           <>
                                                  <button onClick={handleAddClick} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 mb-4 flex justify-center items-center gap-2 hover:bg-blue-700 active:scale-95 transition"><Plus /> เพิ่มสินค้าใหม่</button>
+
+                                                 {/* Search Box */}
+                                                 <div className="mb-4 relative">
+                                                        <input
+                                                               type="text"
+                                                               placeholder="ค้นหาสินค้า..."
+                                                               value={productSearch}
+                                                               onChange={(e) => setProductSearch(e.target.value)}
+                                                               className="w-full p-3 pl-4 pr-10 border rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+                                                        />
+                                                        {productSearch && (
+                                                               <button
+                                                                      onClick={() => setProductSearch("")}
+                                                                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                                               >
+                                                                      <X size={18} />
+                                                               </button>
+                                                        )}
+                                                 </div>
+
                                                  <div className="grid gap-3">
-                                                        {products.map(p => {
-                                                               const catName = categories.find(c => c.id === p.category_id)?.name || "ไม่ระบุ";
-                                                               return (
-                                                                      <div key={p.id} className="glass-card bg-white p-3 rounded-2xl flex items-center gap-3">
-                                                                             <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden relative border flex-shrink-0">{p.image_url ? <Image src={p.image_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-gray-300" /></div>}</div>
-                                                                             <div className="flex-1 min-w-0">
-                                                                                    <div className="font-bold truncate text-gray-800">{p.name}</div>
-                                                                                    <div className="flex items-center gap-2 text-xs">
-                                                                                           <span className={`px-1.5 py-0.5 rounded ${p.category_id ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>{catName}</span>
-                                                                                           <span className="text-gray-500">เหลือ <span className={p.stock < 5 ? 'text-red-500 font-bold' : 'text-green-600'}>{p.stock}</span></span>
+                                                        {products
+                                                               .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                                                               .map(p => {
+                                                                      const catName = categories.find(c => c.id === p.category_id)?.name || "ไม่ระบุ";
+                                                                      return (
+                                                                             <div key={p.id} className="glass-card bg-white p-3 rounded-2xl flex items-center gap-3">
+                                                                                    <div className="w-14 h-14 bg-gray-100 rounded-xl overflow-hidden relative border flex-shrink-0">{p.image_url ? <Image src={p.image_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-gray-300" /></div>}</div>
+                                                                                    <div className="flex-1 min-w-0">
+                                                                                           <div className="font-bold truncate text-gray-800">{p.name}</div>
+                                                                                           <div className="flex items-center gap-2 text-xs">
+                                                                                                  <span className={`px-1.5 py-0.5 rounded ${p.category_id ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>{catName}</span>
+                                                                                                  <span className="text-gray-500">เหลือ <span className={p.stock < 5 ? 'text-red-500 font-bold' : 'text-green-600'}>{p.stock}</span></span>
+                                                                                           </div>
+                                                                                    </div>
+                                                                                    <div className="text-right flex flex-col items-end gap-1">
+                                                                                           <div className="text-blue-600 font-bold text-lg">{p.price}.-</div>
+                                                                                           <div className="flex gap-1"><button onClick={() => handleEditClick(p)} className="bg-yellow-50 text-yellow-600 p-1.5 rounded-lg hover:bg-yellow-100 transition"><Pencil size={14} /></button><button onClick={() => handleArchive(p.id)} className="bg-red-50 text-red-400 p-1.5 rounded-lg hover:bg-red-100 transition"><Archive size={14} /></button></div>
                                                                                     </div>
                                                                              </div>
-                                                                             <div className="text-right flex flex-col items-end gap-1">
-                                                                                    <div className="text-blue-600 font-bold text-lg">{p.price}.-</div>
-                                                                                    <div className="flex gap-1"><button onClick={() => handleEditClick(p)} className="bg-yellow-50 text-yellow-600 p-1.5 rounded-lg hover:bg-yellow-100 transition"><Pencil size={14} /></button><button onClick={() => handleArchive(p.id)} className="bg-red-50 text-red-400 p-1.5 rounded-lg hover:bg-red-100 transition"><Archive size={14} /></button></div>
-                                                                             </div>
-                                                                      </div>
-                                                               );
-                                                        })}
+                                                                      );
+                                                               })}
                                                  </div>
                                           </>
                                    )}
