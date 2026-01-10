@@ -141,15 +141,15 @@ export default function StatsPage() {
                                                  </div>
                                                  <div className="space-y-2 text-sm">
                                                         <div className="flex justify-between">
-                                                               <span className="text-gray-600">💰 ยอดขายรวม:</span>
+                                                               <span className="text-gray-600">ยอดขายรวม:</span>
                                                                <span className="font-bold text-blue-600">{data?.totalSales.toLocaleString()} บาท</span>
                                                         </div>
                                                         <div className="flex justify-between">
-                                                               <span className="text-gray-600">📦 ทุนการขาย:</span>
+                                                               <span className="text-gray-600">ทุนการขาย:</span>
                                                                <span className="font-bold text-orange-600">{data?.totalCost.toLocaleString()} บาท</span>
                                                         </div>
                                                         <div className="flex justify-between border-t pt-2">
-                                                               <span className="text-gray-700 font-bold">✨ กำไรสุทธิ:</span>
+                                                               <span className="text-gray-700 font-bold">กำไรสุทธิ:</span>
                                                                <span className="font-extrabold text-green-600 text-lg">{data?.totalProfit.toLocaleString()} บาท</span>
                                                         </div>
                                                  </div>
