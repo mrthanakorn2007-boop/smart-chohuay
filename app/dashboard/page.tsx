@@ -7,6 +7,7 @@ import { Download, Trash2, Check, X, FileText, Home, RefreshCw, Edit2, TrendingU
 import { supabase } from "../lib/supabase";
 import * as XLSX from "xlsx";
 import { deleteOrder, updateOrderItemName } from "../actions";
+import { DarkModeToggle } from "../components/DarkModeToggle";
 
 export default function Dashboard() {
        const [orders, setOrders] = useState<any[]>([]);
@@ -75,12 +76,12 @@ export default function Dashboard() {
        };
 
        return (
-              <div className="flex flex-col h-dvh bg-gray-50 overflow-hidden">
-                     <div className="flex-none p-4 pt-safe flex items-center justify-between z-20 bg-white shadow-sm">
-                            <Link href="/" className="px-3 py-2 rounded-full bg-gray-100 text-gray-700 font-bold flex items-center gap-1 active:scale-95 transition"><Home size={18} /> เมนู</Link>
+              <div className="flex flex-col h-dvh bg-gray-50 dark:bg-gray-900 overflow-hidden">
+                     <div className="flex-none p-4 pt-safe flex items-center justify-between z-20 bg-white dark:bg-gray-800 shadow-sm">
+                            <Link href="/" className="px-3 py-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold flex items-center gap-1 active:scale-95 transition"><Home size={18} /> เมนู</Link>
                             <div className="flex gap-2">
-                                   <button onClick={loadOrders} className="bg-gray-100 text-gray-600 px-3 py-2 rounded-full active:scale-95 transition flex items-center gap-1 border"><RefreshCw size={18} className={loading ? "animate-spin" : ""} /></button>
-                                   <button onClick={downloadExcel} className="bg-green-600 text-white px-3 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition"><Download size={18} /> Excel</button>
+                                   <button onClick={loadOrders} className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-3 py-2 rounded-full active:scale-95 transition flex items-center gap-1 border dark:border-gray-600"><RefreshCw size={18} className={loading ? "animate-spin" : ""} /></button>
+                                   <button onClick={downloadExcel} className="bg-green-600 dark:bg-green-700 text-white px-3 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-md active:scale-95 transition"><Download size={18} /> Excel</button>
                             </div>
                      </div>
 
